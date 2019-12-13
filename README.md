@@ -32,6 +32,8 @@ This is a master repo for all of the data sources that we use. Each folder is fo
 - [CRASH - Motor Vehicle Accident Report](#crash---motor-vehicle-accident-report)
 	- [Data Elements](#data-elements-7)
 	- [Notes](#notes-6)
+- [Assets](#Assets)
+  - [Traffic Signals](#Traffic-Signals)
 
 ## Open Data Releases
 
@@ -60,7 +62,7 @@ score|Quality Indicator|10/20/30
 
 ### Notes
 
-* INRIX vehicles disproportionately include heavy vehicles. 
+* INRIX vehicles disproportionately include heavy vehicles.
 * There's additional sampling bias in that the heavy vehicles do not reflect the general travel patterns.
 * Two sections of freeway(the southernmost sections of 427 and 404) have no available data. These approaches may be imssing due to the idiosyncratic geometries of TMCs near the major freeway-to-freeway interchanges.
 * In any given 15 minute interval between 5am and 10pm, 88.7% of freeway links and 48% of arterial links have observations.
@@ -100,7 +102,7 @@ SampleCount|the number of devices completing the route from start to end in the 
 	- exportDwelltimeReport() – used to export Measured Time data;
 	- exportLiveDwelltimeReport() – used to export Live Measured Time data;
 	- exportKPIReport() – used to export KPI data;
-	- exportQuarterlyReport() – used to export Quarterly KPI data;	
+	- exportQuarterlyReport() – used to export Quarterly KPI data;
 	- exportCounterReport() – used to export Counter Reports;
 	- getCurrentDwellTime() – used to get current dwell time for a live analysis;
 	- getCurrentDwellTimes() – used to get current dwell time for a list of live analyses in a single call;
@@ -125,7 +127,7 @@ SampleCount|the number of devices completing the route from start to end in the 
 
 #### Notes
 
-* No regular data load schedule. 
+* No regular data load schedule.
 * Data files collected by 2-3 staff members.
 * Manually geo-reference volume data to an SLSN node during data import process
 * Data is manually updated into FLOW.
@@ -168,7 +170,7 @@ SampleCount|the number of devices completing the route from start to end in the 
 * Location Identifier (SLSN Link ID)
 * Count Type
 * Roadway Names
-* Lane Number 
+* Lane Number
 * 15 min aggregated interval times
 * 15 min aggregated volume, occupancy, and speed
 
@@ -247,3 +249,68 @@ workeventtype|work event types(not always occupied)|string(from dropdown list)
 ### Notes
 * No real-time data integration
 * Manual data integration with TPS and CRC via XML file exchange (not reliable or consistent)
+
+## Assets
+The `assets` directory stores [airflow](https://github.com/CityofToronto/bdit_team_wiki/blob/master/install_instructions/airflow.md) processes related to various assets that we help manage, such as datasets related to Vision Zero.  Below are the assets that we have automated so far.  
+
+### Traffic Signals
+Traffic-related indicators (Leading Pedestrian Intervals, Audible Pedestrian Signals, Pedestrian Crossovers, Traffic Signals, and LED Blankout Signs) are obtained from several different tables in the SignalView Oracle database. These indicators are used to populate the Vision Zero map and dashboard. We have developed a process using Airflow to automatically connect to the database, extract the data needed, and store to our RDS Postgres database. See the README file in `assets/traffic_signals` for details about the source datasets and how they are combined into a final table made up of the following data elements.   
+
+#### Data Elements
+Field Name|Description|Type
+----------|-----------|----
+asset_type|type of indicator|text
+px|?? | integer
+main_street|name of main street|text
+midblock_route|location details e.g. "26m SOUTH OF" |text
+side1_street|name of intersecting street |text
+side2_street|name of intersecting street if it e.g. changes after intersection |text
+latitude|latitude|numeric
+longitude|longitude|numeric
+activation_date|date installed |date
+details|currently NULL |text  
+
+#### Notes  
+For the final layer `vz_safety_programs.points_traffic_signals`, the `asset_type` column is populated with text `Traffic Signals`, and the other columns are renamed:  
+
+```
+'Traffic Signals'::text AS asset_type,
+   a.id::integer AS px,
+   a.streetname AS main_street,
+   a.midblockroute AS midblock_route,
+   a.side1routef AS side1_street,
+   a.side2route AS side2_street,
+   b.latitude,
+   b.longitude,
+   b.activation_date AS activation_date,
+   NULL::text AS details
+```
+
+### Red Light Cameras
+Red Light Camera data are obtained from Open Data and are also indicators that are displayed on the Vision Zero map and dashboard. We have developed a process using Airflow to automatically connect to Open Data and store the data to our RDS Postgres database. See the README file in `assets/rlc` for details about this process.  The final table is made up of the following elements:  
+
+#### Data Elements
+Field Name|Description|Type
+----------|-----------|----
+rlc|ID number of camera |integer
+tcs|?|integer
+loc|name of intersection|text
+additional_info| notes |text
+main|name of main street in intersection|text
+side1|name of intersecting street|text
+side2|name of intersecting street if it e.g. changes after intersection |text
+mid_block|currently all NULL|text
+privateAccess|name of private access street|text
+latitude|latitude|numeric
+longitude|longitude|numeric
+x|?|numeric
+y|?|numeric
+district|name of district|text
+ward1|?|text
+ward2|?|text
+ward3|?|text
+ward4|?|text
+policeDivision1|?|text
+policeDivision2|?|text
+policeDivision3	|?|text
+date_installed|date installed|date  
