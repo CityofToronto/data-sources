@@ -147,14 +147,20 @@ def get_intersection_tmc(table, start_time, end_iteration_time, intersection_id1
     if response.status_code==200:
         tmc=json.loads(response.content.decode('utf-8'))
         for item in tmc:
+            if isinstance(item, dict):
+                item['classification']=get_classification(item['class'])
+                item['volume']=item.pop('qty')
+                item['movement']=get_movement(item['entrance'], item['exit'])
+                item['leg']=item.pop('entrance')
 
-            item['classification']=get_classification(item['class'])
-            item['volume']=item.pop('qty')
-            item['movement']=get_movement(item['entrance'], item['exit'])
-            item['leg']=item.pop('entrance')
-
-            temp=[intersection_uid, item['timestamp'], item['classification'], item['leg'], item['movement'], item['volume']]
-            table.append(temp)
+                temp=[intersection_uid, item['timestamp'], item['classification'], item['leg'], item['movement'], item['volume']]
+                table.append(temp)
+            else:
+                logger.warning(
+                    "Encountered item {0} while processing {1} from"
+                    "{2}-{3}".format(item, intersection_id1, start_time,
+                                     end_iteration_time))
+        first_not_dict_encountered = None
 
         return table
     elif response.status_code==404:
